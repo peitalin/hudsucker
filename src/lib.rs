@@ -76,6 +76,8 @@ impl From<Response<Body>> for RequestOrResponse {
 pub struct HttpContext {
     /// Address of the client that is sending the request.
     pub client_addr: SocketAddr,
+    /// Unique identifier for the request.
+    pub request_id: String,
 }
 
 /// Context for websocket messages.
