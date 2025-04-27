@@ -7,7 +7,6 @@ use hudsucker::{
     *,
 };
 use std::net::SocketAddr;
-use serde::{de::DeserializeOwned, Serialize};
 use tracing::*;
 
 async fn shutdown_signal() {
@@ -20,18 +19,18 @@ async fn shutdown_signal() {
 struct LogHandler;
 
 impl HttpHandler for LogHandler {
-    async fn handle_request<T: Serialize + DeserializeOwned + Send + 'static>(
+    async fn handle_request(
         &mut self,
-        _ctx: &mut HttpContext<T>,
+        _ctx: &mut HttpContext,
         req: Request<Body>,
     ) -> RequestOrResponse {
         println!("{:?}", req);
         req.into()
     }
 
-    async fn handle_response<T: Serialize + DeserializeOwned + Send + 'static>(
+    async fn handle_response(
         &mut self,
-        _ctx: &mut HttpContext<T>,
+        _ctx: &mut HttpContext,
         res: Response<Body>,
     ) -> Response<Body> {
         println!("{:?}", res);
@@ -70,7 +69,7 @@ async fn main() {
         .build()
         .expect("Failed to create proxy");
 
-    if let Err(e) = proxy.start::<String>().await {
+    if let Err(e) = proxy.start().await {
         error!("{}", e);
     }
 }

@@ -154,7 +154,7 @@ async fn start_proxy(
         .build()
         .expect("Failed to create proxy");
 
-    tokio::spawn(proxy.start::<()>());
+    tokio::spawn(proxy.start());
 
     Ok((addr, tx))
 }

@@ -35,7 +35,7 @@ async fn main() {
         .build()
         .expect("Failed to create proxy");
 
-    if let Err(e) = proxy.start::<String>().await {
+    if let Err(e) = proxy.start().await {
         error!("{}", e);
     }
 }

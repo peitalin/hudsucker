@@ -28,7 +28,6 @@ pub mod certificate_authority;
 
 use futures::{Sink, SinkExt, Stream, StreamExt};
 use hyper::{Request, Response, StatusCode, Uri};
-use serde::{de::DeserializeOwned, Serialize};
 use std::net::SocketAddr;
 use tokio_tungstenite::tungstenite::{self, Message};
 use tracing::error;
@@ -74,15 +73,15 @@ impl From<Response<Body>> for RequestOrResponse {
 /// Context for HTTP requests and responses.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
-pub struct HttpContext<T: Serialize + DeserializeOwned> {
+pub struct HttpContext {
     /// Address of the client that is sending the request.
     pub client_addr: SocketAddr,
     /// Mutable request context for associating request/response pairs.
-    pub request_context: Option<T>,
+    pub request_context: Option<serde_json::Value>,
 }
 
-impl<T: Serialize + DeserializeOwned> HttpContext<T> {
-    pub fn set_request_context(&mut self, request_context: T) {
+impl HttpContext {
+    pub fn set_request_context(&mut self, request_context: serde_json::Value) {
         self.request_context = Some(request_context);
     }
 }
@@ -113,9 +112,9 @@ pub trait HttpHandler: Clone + Send + Sync + 'static {
     /// This handler will be called for each HTTP request. It can either return a modified request,
     /// or a response. If a request is returned, it will be sent to the upstream server. If a
     /// response is returned, it will be sent to the client.
-    fn handle_request<T: Serialize + DeserializeOwned + Send + 'static>(
+    fn handle_request(
         &mut self,
-        _ctx: &mut HttpContext<T>,
+        _ctx: &mut HttpContext,
         req: Request<Body>,
     ) -> impl Future<Output = RequestOrResponse> + Send {
         async { req.into() }
@@ -123,18 +122,18 @@ pub trait HttpHandler: Clone + Send + Sync + 'static {
 
     /// This handler will be called for each HTTP response. It can modify a response before it is
     /// forwarded to the client.
-    fn handle_response<T: Serialize + DeserializeOwned + Send + 'static>(
+    fn handle_response(
         &mut self,
-        _ctx: &mut HttpContext<T>,
+        _ctx: &mut HttpContext,
         res: Response<Body>,
     ) -> impl Future<Output = Response<Body>> + Send {
         async { res }
     }
 
     /// This handler will be called if a proxy request fails. Default response is a 502 Bad Gateway.
-    fn handle_error<T: Serialize + DeserializeOwned + Send + 'static>(
+    fn handle_error(
         &mut self,
-        _ctx: &mut HttpContext<T>,
+        _ctx: &mut HttpContext,
         err: hyper_util::client::legacy::Error,
     ) -> impl Future<Output = Response<Body>> + Send {
         async move {
@@ -147,9 +146,9 @@ pub trait HttpHandler: Clone + Send + Sync + 'static {
     }
 
     /// Whether a CONNECT request should be intercepted. Defaults to `true` for all requests.
-    fn should_intercept<T: Serialize + DeserializeOwned + Send + 'static>(
+    fn should_intercept(
         &mut self,
-        _ctx: &HttpContext<T>,
+        _ctx: &mut HttpContext,
         _req: &Request<Body>,
     ) -> impl Future<Output = bool> + Send {
         async { true }

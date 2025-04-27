@@ -17,7 +17,6 @@ use hyper_util::{
     server,
 };
 use std::{convert::Infallible, net::SocketAddr, sync::Arc};
-use serde::{de::DeserializeOwned, Serialize};
 use tokio::{io::AsyncReadExt, net::TcpStream, task::JoinHandle};
 use tokio_rustls::TlsAcceptor;
 use tokio_tungstenite::{
@@ -76,7 +75,7 @@ where
     H: HttpHandler,
     W: WebSocketHandler,
 {
-    fn context<T: Serialize + DeserializeOwned>(&self) -> HttpContext<T> {
+    fn context(&self) -> HttpContext {
         HttpContext {
             client_addr: self.client_addr,
             request_context: None,
@@ -92,11 +91,8 @@ where
             client_addr = %self.client_addr,
         )
     )]
-    pub(crate) async fn proxy<T: Serialize + DeserializeOwned + Send + 'static>(
-        mut self,
-        req: Request<Incoming>,
-    ) -> Result<Response<Body>, Infallible> {
-        let mut ctx: HttpContext<T> = self.context();
+    pub(crate) async fn proxy(mut self, req: Request<Incoming>) -> Result<Response<Body>, Infallible> {
+        let mut ctx: HttpContext = self.context();
 
         let req = match self
             .http_handler
@@ -109,7 +105,7 @@ where
         };
 
         if req.method() == Method::CONNECT {
-            Ok(self.process_connect::<T>(req))
+            Ok(self.process_connect(req))
         } else if hyper_tungstenite::is_upgrade_request(&req) {
             Ok(self.upgrade_websocket(req))
         } else {
@@ -134,7 +130,7 @@ where
         }
     }
 
-    fn process_connect<T: Serialize + DeserializeOwned + Send + 'static>(mut self, mut req: Request<Body>) -> Response<Body> {
+    fn process_connect(mut self, mut req: Request<Body>) -> Response<Body> {
         match req.uri().authority().cloned() {
             Some(authority) => {
                 let span = info_span!("process_connect");
@@ -158,12 +154,12 @@ where
 
                             if self
                                 .http_handler
-                                .should_intercept(&self.context::<T>(), &req)
+                                .should_intercept(&mut self.context(), &req)
                                 .await
                             {
                                 if buffer == *b"GET " {
                                     if let Err(e) = self
-                                        .serve_stream::<_, T>(
+                                        .serve_stream(
                                             TokioIo::new(upgraded),
                                             Scheme::HTTP,
                                             authority,
@@ -193,7 +189,7 @@ where
                                     };
 
                                     if let Err(e) =
-                                        self.serve_stream::<_, T>(stream, Scheme::HTTPS, authority).await
+                                        self.serve_stream(stream, Scheme::HTTPS, authority).await
                                     {
                                         if !e
                                             .to_string()
@@ -336,7 +332,7 @@ where
     }
 
     #[instrument(skip_all)]
-    async fn serve_stream<I, T>(
+    async fn serve_stream<I>(
         self,
         stream: I,
         scheme: Scheme,
@@ -344,7 +340,6 @@ where
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>
     where
         I: hyper::rt::Read + hyper::rt::Write + Unpin + Send + 'static,
-        T: Serialize + DeserializeOwned + Send + 'static,
     {
         let service = service_fn(|mut req| {
             if req.version() == hyper::Version::HTTP_10 || req.version() == hyper::Version::HTTP_11
@@ -361,7 +356,7 @@ where
                 req = Request::from_parts(parts, body);
             };
 
-            self.clone().proxy::<T>(req)
+            self.clone().proxy(req)
         });
 
         self.server
@@ -483,7 +478,7 @@ mod tests {
                 .body(Body::empty())
                 .unwrap();
 
-            let res = proxy.process_connect::<String>(req);
+            let res = proxy.process_connect(req);
 
             assert_eq!(res.status(), StatusCode::BAD_REQUEST)
         }
