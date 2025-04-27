@@ -80,6 +80,12 @@ pub struct HttpContext {
     pub request_id: String,
 }
 
+impl HttpContext {
+    pub fn set_request_id(&mut self, request_id: String) {
+        self.request_id = request_id;
+    }
+}
+
 /// Context for websocket messages.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum WebSocketContext {
