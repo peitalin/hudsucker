@@ -95,11 +95,11 @@ where
         mut self,
         req: Request<Incoming>,
     ) -> Result<Response<Body>, Infallible> {
-        let ctx = self.context();
+        let mut ctx = self.context();
 
         let req = match self
             .http_handler
-            .handle_request(&ctx, req.map(Body::from))
+            .handle_request(&mut ctx, req.map(Body::from))
             .instrument(info_span!("handle_request"))
             .await
         {
@@ -121,12 +121,12 @@ where
             match res {
                 Ok(res) => Ok(self
                     .http_handler
-                    .handle_response(&ctx, res.map(Body::from))
+                    .handle_response(&mut ctx, res.map(Body::from))
                     .instrument(info_span!("handle_response"))
                     .await),
                 Err(err) => Ok(self
                     .http_handler
-                    .handle_error(&ctx, err)
+                    .handle_error(&mut ctx, err)
                     .instrument(info_span!("handle_error"))
                     .await),
             }

@@ -114,7 +114,7 @@ pub trait HttpHandler: Clone + Send + Sync + 'static {
     /// response is returned, it will be sent to the client.
     fn handle_request(
         &mut self,
-        _ctx: &HttpContext,
+        _ctx: &mut HttpContext,
         req: Request<Body>,
     ) -> impl Future<Output = RequestOrResponse> + Send {
         async { req.into() }
@@ -124,7 +124,7 @@ pub trait HttpHandler: Clone + Send + Sync + 'static {
     /// forwarded to the client.
     fn handle_response(
         &mut self,
-        _ctx: &HttpContext,
+        _ctx: &mut HttpContext,
         res: Response<Body>,
     ) -> impl Future<Output = Response<Body>> + Send {
         async { res }
@@ -133,7 +133,7 @@ pub trait HttpHandler: Clone + Send + Sync + 'static {
     /// This handler will be called if a proxy request fails. Default response is a 502 Bad Gateway.
     fn handle_error(
         &mut self,
-        _ctx: &HttpContext,
+        _ctx: &mut HttpContext,
         err: hyper_util::client::legacy::Error,
     ) -> impl Future<Output = Response<Body>> + Send {
         async move {
