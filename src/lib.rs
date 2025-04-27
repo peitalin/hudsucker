@@ -28,6 +28,7 @@ pub mod certificate_authority;
 
 use futures::{Sink, SinkExt, Stream, StreamExt};
 use hyper::{Request, Response, StatusCode, Uri};
+use serde::{de::DeserializeOwned, Serialize};
 use std::net::SocketAddr;
 use tokio_tungstenite::tungstenite::{self, Message};
 use tracing::error;
@@ -81,8 +82,19 @@ pub struct HttpContext {
 }
 
 impl HttpContext {
-    pub fn set_request_context(&mut self, request_context: serde_json::Value) {
-        self.request_context = Some(request_context);
+    pub fn set_request_context<T: Serialize + DeserializeOwned>(
+        &mut self,
+        request_context: T
+    ) -> Result<(), serde_json::Error> {
+        self.request_context = Some(serde_json::to_value(request_context)?);
+        Ok(())
+    }
+
+    pub fn get_request_context<T: DeserializeOwned>(&self) -> Option<T> {
+        match &self.request_context {
+            Some(value) => serde_json::from_value(value.clone()).ok(),
+            None => None,
+        }
     }
 }
 
