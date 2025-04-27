@@ -78,6 +78,7 @@ where
     fn context(&self) -> HttpContext {
         HttpContext {
             client_addr: self.client_addr,
+            request_id: String::from(""),
         }
     }
 
