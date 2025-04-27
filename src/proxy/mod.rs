@@ -60,7 +60,7 @@ use tracing::error;
 ///     .build()
 ///     .expect("Failed to create proxy");
 ///
-/// tokio::spawn(proxy.start());
+/// tokio::spawn(proxy.start::<()>());
 ///
 /// // Do something else...
 ///

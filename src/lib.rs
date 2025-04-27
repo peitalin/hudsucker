@@ -113,7 +113,7 @@ pub trait HttpHandler: Clone + Send + Sync + 'static {
     /// This handler will be called for each HTTP request. It can either return a modified request,
     /// or a response. If a request is returned, it will be sent to the upstream server. If a
     /// response is returned, it will be sent to the client.
-    fn handle_request<T: Serialize + DeserializeOwned>(
+    fn handle_request<T: Serialize + DeserializeOwned + Send + 'static>(
         &mut self,
         _ctx: &mut HttpContext<T>,
         req: Request<Body>,
@@ -123,7 +123,7 @@ pub trait HttpHandler: Clone + Send + Sync + 'static {
 
     /// This handler will be called for each HTTP response. It can modify a response before it is
     /// forwarded to the client.
-    fn handle_response<T: Serialize + DeserializeOwned>(
+    fn handle_response<T: Serialize + DeserializeOwned + Send + 'static>(
         &mut self,
         _ctx: &mut HttpContext<T>,
         res: Response<Body>,
@@ -132,7 +132,7 @@ pub trait HttpHandler: Clone + Send + Sync + 'static {
     }
 
     /// This handler will be called if a proxy request fails. Default response is a 502 Bad Gateway.
-    fn handle_error<T: Serialize + DeserializeOwned>(
+    fn handle_error<T: Serialize + DeserializeOwned + Send + 'static>(
         &mut self,
         _ctx: &mut HttpContext<T>,
         err: hyper_util::client::legacy::Error,
@@ -147,7 +147,7 @@ pub trait HttpHandler: Clone + Send + Sync + 'static {
     }
 
     /// Whether a CONNECT request should be intercepted. Defaults to `true` for all requests.
-    fn should_intercept<T: Serialize + DeserializeOwned>(
+    fn should_intercept<T: Serialize + DeserializeOwned + Send + 'static>(
         &mut self,
         _ctx: &HttpContext<T>,
         _req: &Request<Body>,
