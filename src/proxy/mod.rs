@@ -14,6 +14,7 @@ use hyper_util::{
     server::conn::auto::{self, Builder},
 };
 use internal::InternalProxy;
+use serde::{de::DeserializeOwned, Serialize};
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio_graceful::Shutdown;
@@ -100,7 +101,7 @@ where
     /// # Errors
     ///
     /// This will return an error if the proxy server is unable to be started.
-    pub async fn start(self) -> Result<(), Error> {
+    pub async fn start<T: Serialize + DeserializeOwned + Send + 'static>(self) -> Result<(), Error> {
         let server = self.server.unwrap_or_else(|| {
             let mut builder = auto::Builder::new(TokioExecutor::new());
             builder
@@ -149,7 +150,7 @@ where
                                     websocket_connector: websocket_connector.clone(),
                                     client_addr,
                                 }
-                                .proxy(req)
+                                .proxy::<T>(req)
                             }),
                         );
 
